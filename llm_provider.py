@@ -22,8 +22,10 @@ def chat(
     messages: list[dict],
     max_tokens: int = 1024,
     model: str | None = None,
+    base_url: str | None = None,
+    api_version: str | None = None,
 ) -> str:
-    p = (provider or "anthropic").lower().strip()
+    p = (provider or "openai").lower().strip()
     if p not in SUPPORTED_PROVIDERS:
         raise HTTPException(
             status_code=400,
@@ -31,7 +33,19 @@ def chat(
         )
     if p == "anthropic":
         return _call_anthropic(api_key, system_prompt, messages, max_tokens, model or ANTHROPIC_DEFAULT_MODEL)
-    return _call_openai(api_key, system_prompt, messages, max_tokens, model or OPENAI_DEFAULT_MODEL)
+    if not base_url:
+        raise HTTPException(status_code=400, detail="OpenAI provider requires 'base_url'.")
+    if not api_version:
+        raise HTTPException(status_code=400, detail="OpenAI provider requires 'api_version'.")
+    return _call_openai(
+        api_key,
+        system_prompt,
+        messages,
+        max_tokens,
+        model or OPENAI_DEFAULT_MODEL,
+        base_url,
+        api_version,
+    )
 
 
 def _call_anthropic(api_key: str, system_prompt: str, messages: list[dict], max_tokens: int, model: str) -> str:
@@ -56,13 +70,13 @@ def _call_anthropic(api_key: str, system_prompt: str, messages: list[dict], max_
         raise HTTPException(status_code=500, detail=f"Anthropic call failed: {e}")
 
 
-def _call_openai(api_key: str, system_prompt: str, messages: list[dict], max_tokens: int, model: str) -> str:
+def _call_openai(api_key: str, system_prompt: str, messages: list[dict], max_tokens: int, model: str, base_url: str, api_version: str) -> str:
     try:
-        from openai import OpenAI, AuthenticationError, APIConnectionError, APIStatusError, RateLimitError
+        from openai import AzureOpenAI, AuthenticationError, APIConnectionError, APIStatusError, RateLimitError
     except ImportError as e:
         raise HTTPException(status_code=500, detail=f"openai package not installed: {e}")
     try:
-        client = OpenAI(api_key=api_key)
+        client = AzureOpenAI(api_key=api_key, azure_endpoint=base_url, api_version=api_version)
         oai_messages = [{"role": "system", "content": system_prompt}]
         oai_messages.extend(messages)
         resp = client.chat.completions.create(

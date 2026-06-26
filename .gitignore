@@ -1,0 +1,38 @@
+# Models
+models/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Vector store & knowledge base
+vector_store/
+knowledge_base/
+
+# Generated scripts
+generate_pdfs.py
+
+# Logs & runtime output
+flaw_log.jsonl
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

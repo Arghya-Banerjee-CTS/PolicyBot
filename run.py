@@ -29,7 +29,7 @@ EXCEL_MARKER = SAMPLE_DIR / "PolicyBot_Sample_QA.xlsx"
 BACKEND_PORT = 8001
 FRONTEND_PORT = 8501
 BACKEND_HEALTH_URL = f"http://127.0.0.1:{BACKEND_PORT}/health"
-BACKEND_STARTUP_TIMEOUT = 240
+BACKEND_STARTUP_TIMEOUT = 600
 
 IS_WINDOWS = sys.platform.startswith("win")
 
@@ -72,7 +72,6 @@ def _start_backend() -> subprocess.Popen:
             sys.executable, "-m", "uvicorn",
             "backend:app",
             "--port", str(BACKEND_PORT),
-            "--reload",
         ],
         cwd=str(BASE_DIR),
     )

@@ -13,8 +13,29 @@ Public API:
 from __future__ import annotations
 from pathlib import Path
 import json
+import os
 import re
 import pickle
+
+
+_BASE_DIR_BOOT = Path(__file__).resolve().parent
+_LOCAL_MODEL_DIR = _BASE_DIR_BOOT / "models" / "all-MiniLM-L6-v2"
+
+
+def _prefer_local_model() -> bool:
+    """Force fully-offline mode when the bundled model directory exists.
+
+    Must run BEFORE importing huggingface_hub / sentence_transformers, which
+    snapshot these env vars at import time.
+    """
+    if _LOCAL_MODEL_DIR.exists() and any(_LOCAL_MODEL_DIR.iterdir()):
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+        return True
+    return False
+
+
+_OFFLINE = _prefer_local_model()
 
 import numpy as np
 import faiss
@@ -28,9 +49,14 @@ INDEX_FILE = INDEX_DIR / "faiss.index"
 META_FILE = INDEX_DIR / "chunks.pkl"
 MANIFEST_FILE = INDEX_DIR / "manifest.json"
 
-EMBED_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+EMBED_MODEL_HUB_ID = "sentence-transformers/all-MiniLM-L6-v2"
+EMBED_MODEL_NAME = str(_LOCAL_MODEL_DIR) if _OFFLINE else EMBED_MODEL_HUB_ID
 CHUNK_TARGET_CHARS = 900
 CHUNK_OVERLAP_CHARS = 150
+
+
+def _load_embed_model() -> SentenceTransformer:
+    return SentenceTransformer(EMBED_MODEL_NAME)
 
 
 def _split_text(text: str, target: int = CHUNK_TARGET_CHARS, overlap: int = CHUNK_OVERLAP_CHARS) -> list[str]:
@@ -75,7 +101,7 @@ class RAGEngine:
     @property
     def model(self) -> SentenceTransformer:
         if self._model is None:
-            self._model = SentenceTransformer(EMBED_MODEL_NAME)
+            self._model = _load_embed_model()
         return self._model
 
     @property
